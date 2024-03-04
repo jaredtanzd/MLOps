@@ -1,0 +1,31 @@
+stages:
+  winsorize_and_hu:
+    cmd: python3 1_winsorize_and_hu.py data/raw/KCL_0001 data/processed/hounsfield
+    deps:
+      - 1_winsorize_and_hu.py
+      - data/raw/KCL_0001
+    outs:
+      - data/processed/hounsfield
+  windowing:
+    cmd: python3 2_windowing.py data/processed/hounsfield data/processed/windowed 40 80
+    deps:
+      - 2_windowing.py
+      - data/processed/hounsfield
+    outs:
+      - data/processed/windowed
+  brain_extraction:
+    cmd: python3 3_brain_extraction.py data/processed/windowed data/processed/brain_extracted
+    deps:
+      - 3_brain_extraction.py
+      - data/processed/windowed
+    outs:
+      - data/processed/brain_extracted
+  resampling:
+    cmd: python3 4_resampling.py data/processed/brain_extracted data/processed/resampled 2.5 0.48828125 0.48828125 1 1 1
+
+    deps:
+      - 4_resampling.py
+      - data/processed/brain_extracted
+    outs:
+      - data/processed/resampled
+

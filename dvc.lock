@@ -1,0 +1,76 @@
+schema: '2.0'
+stages:
+  winsorize_and_hu:
+    cmd: python3 1_winsorize_and_hu.py data/raw/KCL_0001 data/processed/hounsfield
+    deps:
+    - path: 1_winsorize_and_hu.py
+      hash: md5
+      md5: b3999c572b140d99fa9eee2222e3a714
+      size: 1119
+    - path: data/raw/KCL_0001
+      hash: md5
+      md5: 41014e9b98ed375b345e0e268dc3cb1f.dir
+      size: 23028744
+      nfiles: 226
+    outs:
+    - path: data/processed/hounsfield
+      hash: md5
+      md5: daffab465d5f2340ca7798b66d1eb63a.dir
+      size: 90973136
+      nfiles: 226
+  windowing:
+    cmd: python3 2_windowing.py data/processed/hounsfield data/processed/windowed
+      40 80
+    deps:
+    - path: 2_windowing.py
+      hash: md5
+      md5: 082c4c9ff3a41cee1a0a6ae74871f49e
+      size: 1005
+    - path: data/processed/hounsfield
+      hash: md5
+      md5: daffab465d5f2340ca7798b66d1eb63a.dir
+      size: 90973136
+      nfiles: 226
+    outs:
+    - path: data/processed/windowed
+      hash: md5
+      md5: 6cd14219ce59fafacd0e274c228fcd0d.dir
+      size: 90973136
+      nfiles: 226
+  brain_extraction:
+    cmd: python3 3_brain_extraction.py data/processed/windowed data/processed/brain_extracted
+    deps:
+    - path: 3_brain_extraction.py
+      hash: md5
+      md5: 0b726b3929c516e8f92db2027c27ff79
+      size: 1140
+    - path: data/processed/windowed
+      hash: md5
+      md5: 6cd14219ce59fafacd0e274c228fcd0d.dir
+      size: 90973136
+      nfiles: 226
+    outs:
+    - path: data/processed/brain_extracted
+      hash: md5
+      md5: 2aeee0245e17dc61ea6764fd2bf8dfa4.dir
+      size: 90973136
+      nfiles: 226
+  resampling:
+    cmd: python3 4_resampling.py data/processed/brain_extracted data/processed/resampled
+      2.5 0.48828125 0.48828125 1 1 1
+    deps:
+    - path: 4_resampling.py
+      hash: md5
+      md5: 2a51324d28cb3aeb1fe6e39df58add00
+      size: 1463
+    - path: data/processed/brain_extracted
+      hash: md5
+      md5: 2aeee0245e17dc61ea6764fd2bf8dfa4.dir
+      size: 90973136
+      nfiles: 226
+    outs:
+    - path: data/processed/resampled
+      hash: md5
+      md5: fb5f02f721bcfa8e9ae6d21436194fc5.dir
+      size: 54398200
+      nfiles: 565
