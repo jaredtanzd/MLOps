@@ -1,1 +1,9 @@
 venv/
+data/processed/hounsfield/
+data/processed/windowed/
+data/processed/brain_extracted/
+data/backup_/
+data/oasis/
+data/processed/processed_masks/
+data/processed/sliced_brain_extracted/
+/GM

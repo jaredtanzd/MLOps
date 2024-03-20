@@ -1,2 +1,7 @@
 /brain_extracted
 /resampled
+/windowed
+/sorted_imgs
+/sorted_imgs_no_brain_extraction
+/hounsfield
+/sorted_masks

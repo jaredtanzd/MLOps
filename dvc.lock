@@ -1,60 +1,60 @@
 schema: '2.0'
 stages:
   winsorize_and_hu:
-    cmd: python3 1_winsorize_and_hu.py data/raw/KCL_0001 data/processed/hounsfield
+    cmd: python3 1_winsorize_and_hu.py data/raw data/processed/hounsfield
     deps:
     - path: 1_winsorize_and_hu.py
       hash: md5
-      md5: b3999c572b140d99fa9eee2222e3a714
-      size: 1119
-    - path: data/raw/KCL_0001
+      md5: 9b95845db8a83365b87522600c2568cd
+      size: 1618
+    - path: data/raw/
       hash: md5
-      md5: 41014e9b98ed375b345e0e268dc3cb1f.dir
-      size: 23028744
-      nfiles: 226
+      md5: 30dc6fd104d47a0669054d34bff70b23.dir
+      size: 851960866
+      nfiles: 8362
     outs:
     - path: data/processed/hounsfield
       hash: md5
-      md5: daffab465d5f2340ca7798b66d1eb63a.dir
-      size: 90973136
-      nfiles: 226
+      md5: 79695040011dcbe4e174b4189edc53c2.dir
+      size: 3365603496
+      nfiles: 8361
   windowing:
     cmd: python3 2_windowing.py data/processed/hounsfield data/processed/windowed
       40 80
     deps:
     - path: 2_windowing.py
       hash: md5
-      md5: 082c4c9ff3a41cee1a0a6ae74871f49e
-      size: 1005
+      md5: ce3930f71429220cc0867ab7f5d9905c
+      size: 1622
     - path: data/processed/hounsfield
       hash: md5
-      md5: daffab465d5f2340ca7798b66d1eb63a.dir
-      size: 90973136
-      nfiles: 226
+      md5: 79695040011dcbe4e174b4189edc53c2.dir
+      size: 3365603496
+      nfiles: 8361
     outs:
     - path: data/processed/windowed
       hash: md5
-      md5: 6cd14219ce59fafacd0e274c228fcd0d.dir
-      size: 90973136
-      nfiles: 226
+      md5: fd07bb4f60fa1c149a420285cc9f65ec.dir
+      size: 3365603496
+      nfiles: 8361
   brain_extraction:
     cmd: python3 3_brain_extraction.py data/processed/windowed data/processed/brain_extracted
     deps:
     - path: 3_brain_extraction.py
       hash: md5
-      md5: 0b726b3929c516e8f92db2027c27ff79
-      size: 1140
+      md5: eb81ae4e45e90eba0295301b5168d9fa
+      size: 1845
     - path: data/processed/windowed
       hash: md5
-      md5: 6cd14219ce59fafacd0e274c228fcd0d.dir
-      size: 90973136
-      nfiles: 226
+      md5: fd07bb4f60fa1c149a420285cc9f65ec.dir
+      size: 3365603496
+      nfiles: 8361
     outs:
     - path: data/processed/brain_extracted
       hash: md5
-      md5: 2aeee0245e17dc61ea6764fd2bf8dfa4.dir
-      size: 90973136
-      nfiles: 226
+      md5: cecefdf78555812c832fb399b92629cc.dir
+      size: 3365603496
+      nfiles: 8361
   resampling:
     cmd: python3 4_resampling.py data/processed/brain_extracted data/processed/resampled
       2.5 0.48828125 0.48828125 1 1 1
@@ -74,3 +74,57 @@ stages:
       md5: fb5f02f721bcfa8e9ae6d21436194fc5.dir
       size: 54398200
       nfiles: 565
+  sort_brain_extracted:
+    cmd: python3 5_sort_images.py data/processed/brain_extracted data/processed/sorted_imgs
+    deps:
+    - path: 5_sort_images.py
+      hash: md5
+      md5: 988c1afe6fa9f21b0840f755ef26263a
+      size: 2420
+    - path: data/processed/brain_extracted
+      hash: md5
+      md5: cecefdf78555812c832fb399b92629cc.dir
+      size: 3365603496
+      nfiles: 8361
+    outs:
+    - path: data/processed/sorted_imgs
+      hash: md5
+      md5: d751713988987e9331980363e24189ce.dir
+      size: 0
+      nfiles: 0
+  sort_no_brain_extraction:
+    cmd: python3 6_sort_images_no_extraction.py data/processed/windowed data/processed/sorted_imgs_no_brain_extraction
+    deps:
+    - path: 6_sort_images_no_extraction.py
+      hash: md5
+      md5: b5ebbd9fedd3290247ba53086506d475
+      size: 2434
+    - path: data/processed/windowed
+      hash: md5
+      md5: fd07bb4f60fa1c149a420285cc9f65ec.dir
+      size: 3365603496
+      nfiles: 8361
+    outs:
+    - path: data/processed/sorted_imgs_no_brain_extraction
+      hash: md5
+      md5: d751713988987e9331980363e24189ce.dir
+      size: 0
+      nfiles: 0
+  process_and_sort_masks:
+    cmd: python3 7_process_and_sort_masks.py
+    deps:
+    - path: 7_process_and_sort_masks.py
+      hash: md5
+      md5: e1fc52fe67d6c66b82ae5fbf4332a211
+      size: 1814
+    - path: GM/
+      hash: md5
+      md5: edc3c4483d4204b1c0a908ae0962fa3d.dir
+      size: 60235494
+      nfiles: 37
+    outs:
+    - path: data/processed/sorted_masks/
+      hash: md5
+      md5: 59381931a5408b20c70235a48d8464b9.dir
+      size: 421637126
+      nfiles: 8362
