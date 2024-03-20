@@ -1,9 +1,9 @@
 stages:
   winsorize_and_hu:
-    cmd: python3 1_winsorize_and_hu.py data/raw/KCL_0001 data/processed/hounsfield
+    cmd: python3 1_winsorize_and_hu.py data/raw data/processed/hounsfield
     deps:
       - 1_winsorize_and_hu.py
-      - data/raw/KCL_0001
+      - data/raw/
     outs:
       - data/processed/hounsfield
   windowing:
@@ -20,12 +20,24 @@ stages:
       - data/processed/windowed
     outs:
       - data/processed/brain_extracted
-  resampling:
-    cmd: python3 4_resampling.py data/processed/brain_extracted data/processed/resampled 2.5 0.48828125 0.48828125 1 1 1
-
+  sort_brain_extracted:
+    cmd: python3 5_sort_images.py data/processed/brain_extracted data/processed/sorted_imgs
     deps:
-      - 4_resampling.py
+      - 5_sort_images.py
       - data/processed/brain_extracted
     outs:
-      - data/processed/resampled
-
+      - data/processed/sorted_imgs
+  sort_no_brain_extraction:
+    cmd: python3 6_sort_images_no_extraction.py data/processed/windowed data/processed/sorted_imgs_no_brain_extraction
+    deps:
+      - 6_sort_images_no_extraction.py
+      - data/processed/windowed
+    outs:
+      - data/processed/sorted_imgs_no_brain_extraction
+  process_and_sort_masks:
+    cmd: python3 7_process_and_sort_masks.py
+    deps:
+      - 7_process_and_sort_masks.py
+      - GM/ 
+    outs:
+      - data/processed/sorted_masks/  

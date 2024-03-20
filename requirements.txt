@@ -1,3 +1,11 @@
 numpy
 matplotlib
 ipykernel
+nibabel
+Pillow
+torch==1.13.0
+torchvision==0.14.0
+torchaudio==0.13.0
+tqdm
+wandb
+dvc[s3]

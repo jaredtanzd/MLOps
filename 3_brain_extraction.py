@@ -1,9 +1,9 @@
 import numpy as np
 import os
 import sys
+import re
 from skimage import morphology
 from scipy.ndimage import label, binary_fill_holes
-
 
 def extract_brain(input_file, output_file):
     img = np.load(input_file)
@@ -21,18 +21,30 @@ def extract_brain(input_file, output_file):
     brain = img * mask
     np.save(output_file, brain)
 
-def process_directory(input_dir, output_dir):
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+def process_directory_recursive(input_dir, output_dir):
+    for root, dirs, files in os.walk(input_dir):
+        # Check if the current directory matches the "KCL_XXXX" pattern or is a subdirectory of a matching directory
+        if re.search(r'KCL_\d{4}', root):
+            current_input_dir = root
+            relative_path = os.path.relpath(current_input_dir, input_dir)
+            current_output_dir = os.path.join(output_dir, relative_path)
 
-    for filename in os.listdir(input_dir):
-        if filename.endswith(".npy"):
-            input_file = os.path.join(input_dir, filename)
-            output_file = os.path.join(output_dir, filename)
-            extract_brain(input_file, output_file)
+            # Ensure the output directory exists
+            if not os.path.exists(current_output_dir):
+                os.makedirs(current_output_dir)
+
+            # Process all .npy files in the current directory
+            for file in files:
+                if file.endswith(".npy"):
+                    input_file = os.path.join(current_input_dir, file)
+                    output_file = os.path.join(current_output_dir, file)
+                    extract_brain(input_file, output_file)
 
 if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("Usage: python script.py <input_dir> <output_dir>")
+        sys.exit(1)
+    
     input_dir = sys.argv[1]
     output_dir = sys.argv[2]
-    process_directory(input_dir, output_dir)
-
+    process_directory_recursive(input_dir, output_dir)
