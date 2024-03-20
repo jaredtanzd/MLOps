@@ -79,8 +79,8 @@ stages:
     deps:
     - path: 5_sort_images.py
       hash: md5
-      md5: 988c1afe6fa9f21b0840f755ef26263a
-      size: 2420
+      md5: e06272b2db6088aa1642d5780a9b7d4f
+      size: 2351
     - path: data/processed/brain_extracted
       hash: md5
       md5: cecefdf78555812c832fb399b92629cc.dir
@@ -89,16 +89,16 @@ stages:
     outs:
     - path: data/processed/sorted_imgs
       hash: md5
-      md5: d751713988987e9331980363e24189ce.dir
-      size: 0
-      nfiles: 0
+      md5: 4dccd3cd1fcb700af7f53724eac6e5b0.dir
+      size: 1683387018
+      nfiles: 8361
   sort_no_brain_extraction:
     cmd: python3 6_sort_images_no_extraction.py data/processed/windowed data/processed/sorted_imgs_no_brain_extraction
     deps:
     - path: 6_sort_images_no_extraction.py
       hash: md5
-      md5: b5ebbd9fedd3290247ba53086506d475
-      size: 2434
+      md5: dbe3798f0fa28b24c9f2211d5a4899f8
+      size: 2364
     - path: data/processed/windowed
       hash: md5
       md5: fd07bb4f60fa1c149a420285cc9f65ec.dir
@@ -107,9 +107,9 @@ stages:
     outs:
     - path: data/processed/sorted_imgs_no_brain_extraction
       hash: md5
-      md5: d751713988987e9331980363e24189ce.dir
-      size: 0
-      nfiles: 0
+      md5: 7589a5f41877eef2c1597e7c5aa614d4.dir
+      size: 1683387018
+      nfiles: 8361
   process_and_sort_masks:
     cmd: python3 7_process_and_sort_masks.py
     deps:

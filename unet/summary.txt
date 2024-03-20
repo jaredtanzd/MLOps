@@ -1,0 +1,2 @@
+Epoch, Learning Rate, Step, Train Loss, Validation Dice
+1, 1e-05, 1130, 0.5096694088615148, 0.48954617977142334
