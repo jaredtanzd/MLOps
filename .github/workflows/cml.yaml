@@ -1,15 +1,10 @@
-name: CML Workflow for UNet Training on AWS with GPU
-on: [push]
-
 jobs:
   deploy-and-train:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
       - name: Set up CML
         uses: iterative/setup-cml@v1
-
       - name: Deploy runner on AWS
         env:
           REPO_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
@@ -21,42 +16,35 @@ jobs:
             --cloud-region ap-southeast-1 \
             --cloud-type t2.small \
             --labels cml-runner
-
   train-model:
     needs: deploy-and-train
     runs-on: [self-hosted, cml-runner]
     container: docker://ghcr.io/iterative/cml:0-dvc2-base1-gpu
     steps:
       - uses: actions/checkout@v3
-      
       - name: Install Python and Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y python3.8
           python3.8 -m pip install --upgrade pip
-          pip install -r  requirements.txt
-
+          pip install -r requirements.txt
       - name: Configure AWS Credentials
         run: |
           echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=${{ secret.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
       - name: DVC Pull Data
         run: |
           dvc pull
           dvc repro
-
       - name: Train the Model
         run: |
-          cd  unet
+          cd unet
           python train.py --epochs 1 --batch-size 4 --learning-rate 0.0001 --gpu 1
-
       - name: Generate Report
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd  unet
-          # Assuming train.py or another script generates a summary.txt
+          cd unet
           echo "## Training Summary" >> report.md
           cat summary.txt >> report.md
           cml comment create report.md
