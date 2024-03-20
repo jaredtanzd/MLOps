@@ -19,7 +19,7 @@ jobs:
           cml runner launch \
             --cloud aws \
             --cloud-region ap-southeast-1 \
-            --cloud-type g4dn.xlarge \
+            --cloud-type t2.small \
             --labels cml-runner
 
   train-model:
@@ -44,7 +44,7 @@ jobs:
       - name: Train the Model
         run: |
           cd my_dvc_project/unet
-          python train.py --epochs 20 --batch-size 4 --learning-rate 0.0001 --gpu 1
+          python train.py --epochs 1 --batch-size 4 --learning-rate 0.0001 --gpu 1
 
       - name: Generate Report
         env:
