@@ -34,7 +34,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3.8
           python3.8 -m pip install --upgrade pip
-          pip install -r my_dvc_project/requirements.txt
+          pip install -r  requirements.txt
 
       - name: DVC Pull Data
         run: |
@@ -43,14 +43,14 @@ jobs:
 
       - name: Train the Model
         run: |
-          cd my_dvc_project/unet
+          cd  unet
           python train.py --epochs 1 --batch-size 4 --learning-rate 0.0001 --gpu 1
 
       - name: Generate Report
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd my_dvc_project/unet
+          cd  unet
           # Assuming train.py or another script generates a summary.txt
           echo "## Training Summary" >> report.md
           cat summary.txt >> report.md
