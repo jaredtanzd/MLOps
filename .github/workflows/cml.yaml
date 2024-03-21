@@ -39,8 +39,8 @@ jobs:
 
       - name: Configure AWS Credentials
         run: |
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          dvc remote modify s3-remote access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}" --local
+          dvc remote modify s3-remote secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}" --local
 
       - name: DVC Pull Data
         run: |
