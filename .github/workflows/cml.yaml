@@ -6,8 +6,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up CML
         uses: iterative/setup-cml@v1
+
       - name: Deploy runner on AWS
         env:
           REPO_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
@@ -27,6 +29,7 @@ jobs:
     container: docker://ghcr.io/iterative/cml:0-dvc2-base1-gpu
     steps:
       - uses: actions/checkout@v3
+      
       - name: Install Python and Dependencies
         run: |
           sudo apt-get update
@@ -39,25 +42,12 @@ jobs:
           dvc remote modify s3-remote access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}" --local
           dvc remote modify s3-remote secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}" --local
 
-      - name: Adjust /tmp permissions
+      - name: Adjust permissions
         run: |
           sudo chmod 777 -R /tmp && sudo chmod o+t -R /tmp
 
-      - name: Diagnostics
-        run: |
-          mount | grep -v 'type proc' | grep -v 'type sysfs' | grep -v 'type tmpfs'
-          df -h
-          whoami
-          id
-          sudo touch /test_write_access || echo "Cannot write to root"
-          touch ./test_write_access_local || echo "Cannot write to working directory"
-          sudo chmod 777 /test_write_access
-          chmod 777 ./test_write_access_local
-
       - name: DVC Pull Data
         run: |
-          export TMPDIR=$(pwd)/temp
-          mkdir $TMPDIR
           dvc pull
           dvc repro
 
@@ -73,4 +63,5 @@ jobs:
           cd unet
           echo "## Training Summary" >> report.md
           cat summary.txt >> report.md
-          cml comment create report.md
+          cml publish training_logs.txt --md >> report.md
+          cml send-comment report.md
