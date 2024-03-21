@@ -7,3 +7,4 @@ data/oasis/
 data/processed/processed_masks/
 data/processed/sliced_brain_extracted/
 /GM
+/.dvc/config.local
