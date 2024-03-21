@@ -115,8 +115,8 @@ stages:
     deps:
     - path: 7_process_and_sort_masks.py
       hash: md5
-      md5: e1fc52fe67d6c66b82ae5fbf4332a211
-      size: 1814
+      md5: 8194af82f384da030ae7362f5374b7a7
+      size: 2110
     - path: GM/
       hash: md5
       md5: edc3c4483d4204b1c0a908ae0962fa3d.dir
@@ -125,6 +125,6 @@ stages:
     outs:
     - path: data/processed/sorted_masks/
       hash: md5
-      md5: 59381931a5408b20c70235a48d8464b9.dir
-      size: 421637126
+      md5: 14f71e9cabf1ac8a1139631240ac62b2.dir
+      size: 1683588356
       nfiles: 8362
