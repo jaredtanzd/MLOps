@@ -8,4 +8,6 @@ torchvision==0.14.0
 torchaudio==0.13.0
 tqdm
 wandb
+scikit-learn
 dvc[s3]
+tensorflow
