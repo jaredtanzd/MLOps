@@ -39,6 +39,10 @@ jobs:
           dvc remote modify s3-remote access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}" --local
           dvc remote modify s3-remote secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}" --local
 
+      - name: Adjust /tmp permissions
+        run: |
+          sudo chmod 777 -R /tmp && sudo chmod o+t -R /tmp
+
       - name: Diagnostics
         run: |
           mount | grep -v 'type proc' | grep -v 'type sysfs' | grep -v 'type tmpfs'
@@ -52,6 +56,8 @@ jobs:
 
       - name: DVC Pull Data
         run: |
+          export TMPDIR=$(pwd)/temp
+          mkdir $TMPDIR
           dvc pull
           dvc repro
 

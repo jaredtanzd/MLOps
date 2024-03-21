@@ -11,3 +11,4 @@ wandb
 scikit-learn
 dvc[s3]
 tensorflow
+statsmodels
