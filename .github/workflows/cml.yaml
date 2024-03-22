@@ -20,7 +20,7 @@ jobs:
             --cloud aws \
             --cloud-region ap-southeast-1 \
             --cloud-type p2.xlarge \
-            --cloud-hdd-size 40 \
+            --cloud-hdd-size 100 \
             --labels cml-runner
 
   train-model:
