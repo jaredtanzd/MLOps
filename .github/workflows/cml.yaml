@@ -62,7 +62,7 @@ jobs:
       - name: Train the Model
         run: |
           cd unet
-          python train.py --epochs 1 --batch-size 4 --learning-rate 0.0001 --gpu 1
+          python train.py --epochs 5 --batch-size 4 --learning-rate 0.0001 --gpu 0
 
       - name: Generate Report
         env:
