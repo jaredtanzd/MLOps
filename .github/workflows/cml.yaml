@@ -26,7 +26,9 @@ jobs:
   train-model:
     needs: deploy-and-train
     runs-on: [self-hosted, cml-runner]
-    container: docker://ghcr.io/iterative/cml:0-dvc2-base1-gpu
+    container: 
+      image: docker://ghcr.io/iterative/cml:0-dvc2-base1-gpu
+      options: --gpus all
     steps:
       - uses: actions/checkout@v3
       
@@ -37,10 +39,12 @@ jobs:
           python3.8 -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      - name: Verify Installed Packages
+      - name: Verify Installed Packages and GPU Availability
         run: |
           pip list
-
+          nvidia-smi
+          python -c "import torch; print(torch.cuda.is_available())"
+          
       - name: Configure AWS Credentials
         run: |
           dvc remote modify s3-remote access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}" --local
