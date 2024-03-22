@@ -66,10 +66,10 @@ jobs:
 
       - name: Generate Report
         env:
-          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           cd unet
           echo "## Training Summary" >> report.md
           cat summary.txt >> report.md
           cml publish training_logs.txt --md >> report.md
-          cml send-comment report.md
+          cml comment create --md report.md
