@@ -39,7 +39,7 @@ def log_training_info(info, log_path='training_logs.txt'):
     with open(log_path, 'a') as file:
         file.write(f"{info}\n")
 
-def train_net(net, device, epochs: int = 5, batch_size: int = 1, learning_rate: float = 1e-5, img_scale: float = 1.0, amp: bool = False):
+def train_net(net, device, epochs: int = 5, batch_size: int = 1, learning_rate: float = 1e-5, img_scale: float = 1.0, amp: bool = False, save_checkpoint: bool = True):
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     dataset_val = BasicDataset(dir_img_val, dir_mask_val, img_scale)
     n_train = len(dataset)
