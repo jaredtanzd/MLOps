@@ -30,139 +30,79 @@ dir_checkpoint = Path('./checkpoints_' + running_task)
 dir_img_val = Path(SOURCE_DIR + 'sorted_imgs_no_brain_extraction/val/') # ct_norm_sag
 dir_mask_val = Path(SOURCE_DIR + 'sorted_masks/val/')
 
-def train_net(net,
-              device,
-              epochs: int = 5,
-              batch_size: int = 1,
-              learning_rate: float = 1e-5,
-              val_percent: float = 0.1,
-              save_checkpoint: bool = True,
-              img_scale: float = 1.0, # 0.5,
-              amp: bool = False):
+def write_summary(epoch, lr, step, train_loss, val_dice, file_path='summary.txt'):
+    with open(file_path, 'a') as file:
+        file.write(f"{epoch}, {lr}, {step}, {train_loss}, {val_dice}\n")
 
+# Function to log training information
+def log_training_info(info, log_path='training_logs.txt'):
+    with open(log_path, 'a') as file:
+        file.write(f"{info}\n")
+
+def train_net(net, device, epochs: int = 5, batch_size: int = 1, learning_rate: float = 1e-5, img_scale: float = 1.0, amp: bool = False):
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     dataset_val = BasicDataset(dir_img_val, dir_mask_val, img_scale)
-
-    # 2. Split into train / validation partitions
-    # n_val = int(len(dataset) * val_percent)
-    n_train = len(dataset) # - n_val
+    n_train = len(dataset)
     n_val = len(dataset_val)
-    # train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
 
-    # 3. Create data loaders
     loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)
-    train_loader = DataLoader(dataset, shuffle=True, **loader_args) # train_set
-    val_loader = DataLoader(dataset_val, shuffle=False, drop_last=True, **loader_args) # val_set
+    train_loader = DataLoader(dataset, shuffle=True, **loader_args)
+    val_loader = DataLoader(dataset_val, shuffle=False, drop_last=True, **loader_args)
 
-    # (Initialize logging)
     experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
-    experiment.config.update(dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate,
-                                  val_percent=val_percent, save_checkpoint=save_checkpoint, img_scale=img_scale,
-                                  amp=amp))
+    experiment.config.update(dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate, img_scale=img_scale, amp=amp))
 
-    logging.info(f'''Starting training:
-        Epochs:          {epochs}
-        Batch size:      {batch_size}
-        Learning rate:   {learning_rate}
-        Training size:   {n_train}
-        Validation size: {n_val}
-        Checkpoints:     {save_checkpoint}
-        Device:          {device.type}
-        Images scaling:  {img_scale}
-        Mixed Precision: {amp}
-    ''')
-
-    # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
     optimizer = optim.RMSprop(net.parameters(), lr=learning_rate, weight_decay=1e-8, momentum=0.9)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=2)  # goal: maximize Dice score
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=2)
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
     criterion = nn.CrossEntropyLoss()
+
+    # Clear previous summary and logs
+    summary_file_path = Path('summary.txt')
+    training_log_path = Path('training_logs.txt')
+    summary_file_path.unlink(missing_ok=True)
+    training_log_path.unlink(missing_ok=True)
+
+    write_summary("Epoch", "Learning Rate", "Step", "Train Loss", "Validation Dice", file_path=summary_file_path)  # Header
+
     global_step = 0
+    for epoch in range(1, epochs + 1):
+        net.train()
+        epoch_loss = 0
+        with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
+            for batch in train_loader:
+                images = batch['image']
+                true_masks = batch['mask']
+                images = images.to(device=device, dtype=torch.float32)
+                true_masks = true_masks.to(device=device, dtype=torch.long)
 
-    with open('summary.txt', 'w') as summary_file:
-        summary_file.write("Epoch, Learning Rate, Step, Train Loss, Validation Dice\n")
+                with torch.cuda.amp.autocast(enabled=amp):
+                    masks_pred = net(images)
+                    loss = criterion(masks_pred, true_masks) + dice_loss(F.softmax(masks_pred, dim=1).float(), F.one_hot(true_masks, net.n_classes).permute(0, 3, 1, 2).float(), multiclass=True)
 
-        # 5. Begin training
-        for epoch in range(1, epochs+1):
-            net.train()
-            epoch_loss = 0
-            with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
-                for batch in train_loader:
-                    images = batch['image']
-                    true_masks = batch['mask']
+                optimizer.zero_grad(set_to_none=True)
+                grad_scaler.scale(loss).backward()
+                grad_scaler.step(optimizer)
+                grad_scaler.update()
 
-                    assert images.shape[1] == net.n_channels, \
-                        f'Network has been defined with {net.n_channels} input channels, ' \
-                        f'but loaded images have {images.shape[1]} channels. Please check that ' \
-                        'the images are loaded correctly.'
+                pbar.update(images.shape[0])
+                global_step += 1
+                epoch_loss += loss.item()
+                experiment.log({'train loss': loss.item(), 'step': global_step, 'epoch': epoch})
+                pbar.set_postfix(**{'loss (batch)': loss.item()})
 
-                    images = images.to(device=device, dtype=torch.float32)
-                    true_masks = true_masks.to(device=device, dtype=torch.long)
+                # Optional: Log training details for each batch
+                log_training_info(f"Epoch {epoch}, Batch Loss: {loss.item()}", log_path=training_log_path)
 
-                    with torch.cuda.amp.autocast(enabled=amp):
-                        masks_pred = net(images)
-                        loss = criterion(masks_pred, true_masks) \
-                            + dice_loss(F.softmax(masks_pred, dim=1).float(),
-                                        F.one_hot(true_masks, net.n_classes).permute(0, 3, 1, 2).float(),
-                                        multiclass=True)
+            val_score = evaluate(net, val_loader, device)
+            scheduler.step(val_score)
 
-                    optimizer.zero_grad(set_to_none=True)
-                    grad_scaler.scale(loss).backward()
-                    grad_scaler.step(optimizer)
-                    grad_scaler.update()
+            write_summary(epoch, optimizer.param_groups[0]['lr'], global_step, epoch_loss / len(train_loader), val_score, file_path=summary_file_path)
 
-                    pbar.update(images.shape[0])
-                    global_step += 1
-                    epoch_loss += loss.item()
-                    experiment.log({
-                        'train loss': loss.item(),
-                        'step': global_step,
-                        'epoch': epoch
-                    })
-                    pbar.set_postfix(**{'loss (batch)': loss.item()})
-
-                    # Evaluation round
-                    division_step = (n_train // (10 * batch_size))
-                    if division_step > 0:
-                        if global_step % division_step == 0:
-                            histograms = {}
-                            for tag, value in net.named_parameters():
-                                tag = tag.replace('/', '.')
-                                histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
-                                histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
-
-                            val_score = evaluate(net, val_loader, device)
-                            scheduler.step(val_score)
-
-                            logging.info('Validation Dice score: {}'.format(val_score))
-                            experiment.log({
-                                'learning rate': optimizer.param_groups[0]['lr'],
-                                'validation Dice': val_score,
-                                'images': wandb.Image(images[0].cpu()),
-                                'masks': {
-                                    'true': wandb.Image(true_masks[0].float().cpu()),
-                                    'pred': wandb.Image(torch.softmax(masks_pred, dim=1).argmax(dim=1)[0].float().cpu()),
-                                },
-                                'step': global_step,
-                                'epoch': epoch,
-                                **histograms
-                            })
-                            
-                epoch_train_loss = epoch_loss / len(train_loader)
-                val_score = evaluate(net, val_loader, device)
-                scheduler.step(val_score)
-
-                # Write the epoch summary to file
-                summary_file.write(f"{epoch}, {optimizer.param_groups[0]['lr']}, {global_step}, {epoch_train_loss}, {val_score}\n")
-
-                logging.info(f'Epoch {epoch} finished! Train Loss: {epoch_train_loss}. Validation Dice: {val_score}.')
-
-
-            if save_checkpoint:
-                Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-                torch.save(net.state_dict(), str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
-                logging.info(f'Checkpoint {epoch} saved!')
-
+        if save_checkpoint:
+            dir_checkpoint.mkdir(parents=True, exist_ok=True)
+            torch.save(net.state_dict(), dir_checkpoint / f'checkpoint_epoch{epoch}.pth')
+            logging.info(f'Checkpoint {epoch} saved!')
 
 def get_args():
     
