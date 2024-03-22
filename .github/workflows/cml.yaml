@@ -72,4 +72,4 @@ jobs:
           echo "## Training Summary" >> report.md
           cat summary.txt >> report.md
           cml publish training_logs.txt --md >> report.md
-          cml comment create --md report.md
+          cml comment create report.md
