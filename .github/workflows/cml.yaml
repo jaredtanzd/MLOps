@@ -56,9 +56,8 @@ jobs:
       
       - name: Pull new and current data with DVC and Process data
         run: |
-          dvc pull data/raw
+          dvc pull 
           dvc repro
-          dvc pull data/new_data
 
       - name: Run data drift detection
         run: |
