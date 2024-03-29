@@ -14,3 +14,4 @@ tensorflow
 statsmodels
 imageio==2.9.0
 pydicom
+scikit-image
