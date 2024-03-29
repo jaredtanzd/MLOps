@@ -39,70 +39,123 @@ def log_training_info(info, log_path='training_logs.txt'):
     with open(log_path, 'a') as file:
         file.write(f"{info}\n")
 
-def train_net(net, device, epochs: int = 5, batch_size: int = 1, learning_rate: float = 1e-5, img_scale: float = 1.0, amp: bool = False, save_checkpoint: bool = True):
+import numpy as np
+
+class EarlyStopping:
+    """Early stops the training if validation loss doesn't improve after a given patience."""
+    def __init__(self, patience=7, verbose=False, delta=0, path='checkpoint.pt'):
+        """
+        Args:
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 7
+            verbose (bool): If True, prints a message for each validation loss improvement. 
+                            Default: False
+            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+                            Default: 0
+            path (str): Path for the checkpoint to be saved to.
+                            Default: 'checkpoint.pt'
+        """
+        self.patience = patience
+        self.verbose = verbose
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+        self.delta = delta
+        self.path = path
+
+    def __call__(self, val_loss, model):
+        if self.best_loss is None:
+            self.best_loss = val_loss
+            self.save_checkpoint(val_loss, model)
+        elif val_loss > self.best_loss - self.delta:
+            self.counter += 1
+            if self.verbose:
+                print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_loss = val_loss
+            self.save_checkpoint(val_loss, model)
+            self.counter = 0
+
+    def save_checkpoint(self, val_loss, model):
+        """Saves model when validation loss decrease."""
+        if self.verbose:
+            print(f'Validation loss decreased ({self.best_loss:.6f} --> {val_loss:.6f}). Saving model ...')
+        torch.save(model.state_dict(), self.path)
+
+
+def train_net(net, device, epochs=5, batch_size=1, learning_rate=1e-5, img_scale=1.0, amp=False, save_checkpoint=True):
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
     dataset_val = BasicDataset(dir_img_val, dir_mask_val, img_scale)
     n_train = len(dataset)
-    n_val = len(dataset_val)
+    
+    train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
 
-    loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)
-    train_loader = DataLoader(dataset, shuffle=True, **loader_args)
-    val_loader = DataLoader(dataset_val, shuffle=False, drop_last=True, **loader_args)
-
-    experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
-    experiment.config.update(dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate, img_scale=img_scale, amp=amp))
+    if wandb.run is None:  # Ensure wandb session is not duplicated
+        wandb.init(project='U-Net', config={
+            "epochs": epochs,
+            "batch_size": batch_size,
+            "learning_rate": learning_rate,
+            "image_scale": img_scale,
+            "amp": amp
+        })
 
     optimizer = optim.RMSprop(net.parameters(), lr=learning_rate, weight_decay=1e-8, momentum=0.9)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=2)
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
     criterion = nn.CrossEntropyLoss()
 
-    # Clear previous summary and logs
-    summary_file_path = Path('summary.txt')
-    training_log_path = Path('training_logs.txt')
-    summary_file_path.unlink(missing_ok=True)
-    training_log_path.unlink(missing_ok=True)
+    early_stopping = EarlyStopping(patience=10, verbose=True, delta=0.001, path=dir_checkpoint / 'early_stopping_model.pth')
 
-    write_summary("Epoch", "Learning Rate", "Step", "Train Loss", "Validation Dice", file_path=summary_file_path)  # Header
-
-    global_step = 0
-    for epoch in range(1, epochs + 1):
+    for epoch in range(epochs):
         net.train()
         epoch_loss = 0
-        with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
-            for batch in train_loader:
-                images = batch['image']
-                true_masks = batch['mask']
-                images = images.to(device=device, dtype=torch.float32)
-                true_masks = true_masks.to(device=device, dtype=torch.long)
+        for batch in tqdm(train_loader, desc=f'Epoch {epoch+1}/{epochs}', unit='batch'):
+            images = batch['image'].to(device, dtype=torch.float32)
+            true_masks = batch['mask'].to(device, dtype=torch.long)
 
-                with torch.cuda.amp.autocast(enabled=amp):
-                    masks_pred = net(images)
-                    loss = criterion(masks_pred, true_masks) + dice_loss(F.softmax(masks_pred, dim=1).float(), F.one_hot(true_masks, net.n_classes).permute(0, 3, 1, 2).float(), multiclass=True)
+            with torch.cuda.amp.autocast(enabled=amp):
+                masks_pred = net(images)
+                loss = criterion(masks_pred, true_masks)
+                if hasattr(net, 'n_classes'):  # If your model supports dice_loss calculation
+                    loss += dice_loss(F.softmax(masks_pred, dim=1).float(),
+                                      F.one_hot(true_masks, net.n_classes).permute(0, 3, 1, 2).float(),
+                                      multiclass=True)
 
-                optimizer.zero_grad(set_to_none=True)
-                grad_scaler.scale(loss).backward()
-                grad_scaler.step(optimizer)
-                grad_scaler.update()
+            optimizer.zero_grad(set_to_none=True)
+            grad_scaler.scale(loss).backward()
+            grad_scaler.step(optimizer)
+            grad_scaler.update()
 
-                pbar.update(images.shape[0])
-                global_step += 1
-                epoch_loss += loss.item()
-                experiment.log({'train loss': loss.item(), 'step': global_step, 'epoch': epoch})
-                pbar.set_postfix(**{'loss (batch)': loss.item()})
+            epoch_loss += loss.item()
 
-                # Optional: Log training details for each batch
-                log_training_info(f"Epoch {epoch}, Batch Loss: {loss.item()}", log_path=training_log_path)
+        # Calculate validation dice score
+        val_dice = evaluate(net, val_loader, device)
 
-            val_score = evaluate(net, val_loader, device)
-            scheduler.step(val_score)
+        logging.info(f'Epoch {epoch+1}, LR: {optimizer.param_groups[0]["lr"]}, Step: {len(train_loader)*(epoch+1)}, '
+                     f'Train Loss: {epoch_loss/len(train_loader):.4f}, Val Dice: {val_dice:.4f}')
 
-            write_summary(epoch, optimizer.param_groups[0]['lr'], global_step, epoch_loss / len(train_loader), val_score, file_path=summary_file_path)
+        # Update learning rate
+        scheduler.step(val_dice)
 
-        if save_checkpoint:
-            dir_checkpoint.mkdir(parents=True, exist_ok=True)
-            torch.save(net.state_dict(), dir_checkpoint / f'checkpoint_epoch{epoch}.pth')
-            logging.info(f'Checkpoint {epoch} saved!')
+        # Early Stopping check
+        early_stopping(val_dice, net)
+        if early_stopping.early_stop:
+            print("Early stopping triggered")
+            break
+
+        # Save model checkpoint if not early stopping
+        if save_checkpoint and not early_stopping.early_stop:
+            checkpoint_path = dir_checkpoint / f'checkpoint_epoch{epoch+1}.pth'
+            torch.save(net.state_dict(), checkpoint_path)
+            logging.info(f'Checkpoint saved at {checkpoint_path}')
+
+        # Log metrics to wandb
+        wandb.log({"epoch": epoch+1, "learning_rate": optimizer.param_groups[0]["lr"],
+                   "train_loss": epoch_loss/len(train_loader), "val_dice": val_dice})
+
 
 def get_args():
     

@@ -9,4 +9,7 @@ data/processed/sliced_brain_extracted/
 /GM
 .dvc/config.local
 data/test_current_data/
-data/test_new_data/ 
+data/test_new_data/
+backup/ 
+temp_current_data/
+temp_new_data/

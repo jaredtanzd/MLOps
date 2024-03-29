@@ -2,7 +2,7 @@ name: CML Workflow for UNet Training on AWS with GPU
 on: [push]
 
 jobs:
-  deploy-and-train:
+  deploy-runner:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -23,7 +23,7 @@ jobs:
             --cloud-hdd-size 200 \
             --labels cml-runner
 
-  train-model:
+  detect-drift-and-train-model:
     needs: deploy-and-train
     runs-on: [self-hosted, cml-runner]
     container: 
@@ -54,35 +54,23 @@ jobs:
         run: |
           sudo chmod 777 -R /tmp && sudo chmod o+t -R /tmp
       
-      - name: Checkout previous version of the data and Pull prevous data with DVC and Process data
-        run: |
-          git checkout HEAD~1 dvc.lock
-          dvc pull data/raw
-          dvc repro
-
-      - name: Copy old data to a temporary directory for comparison
-        run: |
-          mkdir -p ./temp/old_data
-          cp -r data/processed/sorted_imgs/train/* ./temp/old_data/
-
-      - name: Re-checkout the latest version
-        run: git checkout -- dvc.lock
-
-      - name: Pull current data with DVC and Process data
+      - name: Pull new and current data with DVC and Process data
         run: |
           dvc pull data/raw
           dvc repro
+          dvc pull data/new_data
 
       - name: Run data drift detection
         run: |
-          python detect_drift.py --old ./temp/old_data/train --new data/processed/sorted_imgs/train
+          python detect_drift.py --old data/processed/sorted_imgs/train --new data/new_data
         id: detect_drift
       
       - name: Fine-tune model if drift detected
         if: steps.detect_drift.outputs.drift-detected == 'true'
         run: |
           cd unet
-          python fine_tuning.py --epochs 1 --batch-size 1 --learning-rate 0.0001 --gpu 0 --dir-img '../data/processed/sorted_imgs_no_brain_extraction/train/' --dir-mask '../data/processed/sorted_masks/train/' --dir-img-val '../data/processed/sorted_imgs_no_brain_extraction/val/' --dir-mask-val '../data/processed/sorted_masks/val/' --load 'checkpoints_bet_alt_with_brain_extraction/checkpoint_epoch20.pth'
+          python fine_tuning.py --epochs 20 --batch-size 5 --learning-rate 0.0001 --gpu 0 --dir-img '../data/processed/sorted_imgs/train --dir-mask '../my_dvc_project/data/processed/sorted_masks/train' --dir-img-val '../data/processed/sorted_imgs/val' --dir-mask-val '../data/processed/sorted_masks/val' --load 'checkpoints_bet_alt/early_stopping_model.pth' --wandb
+
           dvc push
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
