@@ -24,7 +24,7 @@ jobs:
             --labels cml-runner
 
   detect-drift-and-train-model:
-    needs: deploy-and-train
+    needs: deploy-runner
     runs-on: [self-hosted, cml-runner]
     container: 
       image: docker://ghcr.io/iterative/cml:0-dvc2-base1-gpu
