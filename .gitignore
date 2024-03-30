@@ -11,3 +11,5 @@ data/processed/sliced_brain_extracted/
 data/test_current_data/
 data/test_new_data/
 backup/ 
+test_new_data/*
+test_current_data/*

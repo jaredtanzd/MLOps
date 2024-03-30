@@ -61,7 +61,7 @@ jobs:
 
       - name: Run data drift detection
         run: |
-          python detect_drift.py --old data/processed/sorted_imgs/train --new data/new_data
+          python detect_drift.py --old data/processed/sorted_imgs/train --new data/oasis/ct_norm_resized
         id: detect_drift
       
       - name: Fine-tune model if drift detected
