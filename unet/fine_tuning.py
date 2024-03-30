@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 from torch.utils.data import DataLoader
-import wandb
+# import wandb
 
 from evaluate import evaluate
 from unet.unet_model import UNet
@@ -81,8 +81,8 @@ def main(args):
     logging.info(f'Using device {device}')
 
     # Initialize Weights & Biases
-    if args.wandb:
-        wandb.init(project="unet-finetuning", config=args)
+    # if args.wandb:
+    #     wandb.init(project="unet-finetuning", config=args)
 
     net = UNet(n_channels=1, n_classes=2, bilinear=args.bilinear)
     
@@ -129,8 +129,8 @@ def main(args):
 
         logging.info(f'Epoch {epoch} finished! Train Loss: {epoch_loss / len(train_loader):.4f}, Val Dice: {val_dice:.4f}')
         
-        if args.wandb:
-            wandb.log({"epoch": epoch, "train_loss": epoch_loss / len(train_loader), "val_dice": val_dice})
+        # if args.wandb:
+        #     wandb.log({"epoch": epoch, "train_loss": epoch_loss / len(train_loader), "val_dice": val_dice})
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Fine-tune U-Net model on images and target masks")
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', type=int, default=0, help='GPU ID to use for training, if available.')
     parser.add_argument('--bilinear', action='store_true', help='Flag to use bilinear upsampling. If not set, transposed convolutions are used.')
     parser.add_argument('--load', type=str, help='Path to a .pth file from which to load a pretrained model.')
-    parser.add_argument('--wandb', action='store_true', help='Use Weights & Biases for logging training and validation metrics.')
+    # parser.add_argument('--wandb', action='store_true', help='Use Weights & Biases for logging training and validation metrics.')
 
     args = parser.parse_args()
     main(args)
