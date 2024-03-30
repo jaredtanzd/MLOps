@@ -1,0 +1,5 @@
+outs:
+- md5: e73d0cb900da59b195e2b39cce02dfbb
+  size: 124236909
+  hash: md5
+  path: early_stopping_model.pth
