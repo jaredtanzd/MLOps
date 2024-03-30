@@ -1,0 +1,6 @@
+outs:
+- md5: 49fd3f6a0e5e2e25b58205285d9232dd.dir
+  size: 2458813104
+  nfiles: 12204
+  hash: md5
+  path: oasis
