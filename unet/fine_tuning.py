@@ -56,13 +56,13 @@ class EarlyStopping:
         torch.save(model.state_dict(), self.path)
 
 
-def write_summary(epoch, lr, step, train_loss, val_dice, file_path='summary.txt'):
+def write_summary(epoch, lr, train_loss, val_dice, file_path='summary.txt'):
     # Convert to scalars if any value is a tensor
     train_loss = train_loss.item() if isinstance(train_loss, torch.Tensor) else train_loss
     val_dice = val_dice.item() if isinstance(val_dice, torch.Tensor) else val_dice
 
     with open(str(file_path), 'a') as file:  # Ensure file_path is a string
-        file.write(f"{epoch}, {lr}, {step}, {train_loss}, {val_dice}\n")
+        file.write(f"{epoch}, {lr}, {train_loss}, {val_dice}\n")
 
 
 def log_training_info(info, log_path='training_logs.txt'):
@@ -103,6 +103,14 @@ def main(args):
     optimizer = optim.RMSprop(net.parameters(), lr=args.learning_rate, weight_decay=1e-8, momentum=0.9)
     criterion = nn.CrossEntropyLoss()
 
+    # Clear previous summary and logs
+    summary_file_path = Path('summary.txt')
+    training_log_path = Path('training_logs.txt')
+    summary_file_path.unlink(missing_ok=True)
+    training_log_path.unlink(missing_ok=True)
+
+    write_summary("Epoch", "Learning Rate", "Step", "Train Loss", "Validation Dice", file_path=summary_file_path)  # Header
+
     # Check if the directory for the checkpoint exists; if not, create it
     checkpoint_directory = 'checkpoints_fine_tuning'
     os.makedirs(checkpoint_directory, exist_ok=True)  
@@ -122,9 +130,11 @@ def main(args):
             optimizer.step()
             epoch_loss += loss.item()
 
+            log_training_info(f"Epoch {epoch}, Batch Loss: {loss.item()}", log_path=training_log_path)
         # Validation part
         val_dice = evaluate(net, val_loader, device)
         
+        write_summary(epoch, optimizer.param_groups[0]['lr'], epoch_loss / len(train_loader), val_dice, file_path=summary_file_path)
         # Early Stopping check
         early_stopping(val_dice, net)
         if early_stopping.early_stop:
@@ -149,6 +159,9 @@ if __name__ == '__main__':
     parser.add_argument('--bilinear', action='store_true', help='Flag to use bilinear upsampling. If not set, transposed convolutions are used.')
     parser.add_argument('--load', type=str, help='Path to a .pth file from which to load a pretrained model.')
     # parser.add_argument('--wandb', action='store_true', help='Use Weights & Biases for logging training and validation metrics.')
-
+    
     args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logging.info(f'Using device {device}')
     main(args)
