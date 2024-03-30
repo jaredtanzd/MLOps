@@ -1,7 +1,7 @@
 import argparse
 import logging
 from pathlib import Path
-
+import os
 import torch
 import torch.nn as nn
 from torch import optim
@@ -102,6 +102,10 @@ def main(args):
     # Optimization and loss
     optimizer = optim.RMSprop(net.parameters(), lr=args.learning_rate, weight_decay=1e-8, momentum=0.9)
     criterion = nn.CrossEntropyLoss()
+
+    # Check if the directory for the checkpoint exists; if not, create it
+    checkpoint_directory = 'checkpoints_fine_tuning'
+    os.makedirs(checkpoint_directory, exist_ok=True)  
 
     # Initialize EarlyStopping
     early_stopping = EarlyStopping(patience=7, verbose=True, delta=0.001, path='checkpoints_fine_tuning/early_stopping_checkpoint.pth')
