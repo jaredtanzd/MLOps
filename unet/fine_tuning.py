@@ -82,7 +82,7 @@ def main(args):
 
     # Initialize Weights & Biases
     if args.wandb:
-        wandb.init(project="unet-finetuning", config=args, name=f"UNet_{args.dir_img.split('/')[-1]}")
+        wandb.init(project="unet-finetuning", config=args)
 
     net = UNet(n_channels=1, n_classes=2, bilinear=args.bilinear)
     
