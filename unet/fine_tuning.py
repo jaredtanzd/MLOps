@@ -64,7 +64,6 @@ def write_summary(epoch, lr, train_loss, val_dice, file_path='summary.txt'):
     with open(str(file_path), 'a') as file:  # Ensure file_path is a string
         file.write(f"{epoch}, {lr}, {train_loss}, {val_dice}\n")
 
-
 def log_training_info(info, log_path='training_logs.txt'):
     with open(log_path, 'a') as file:
         file.write(f"{info}\n")
@@ -109,7 +108,7 @@ def main(args):
     summary_file_path.unlink(missing_ok=True)
     training_log_path.unlink(missing_ok=True)
 
-    write_summary("Epoch", "Learning Rate", "Step", "Train Loss", "Validation Dice", file_path=summary_file_path)  # Header
+    write_summary("Epoch", "Learning Rate", "Train Loss", "Validation Dice", file_path=summary_file_path)  # Header
 
     # Check if the directory for the checkpoint exists; if not, create it
     checkpoint_directory = 'checkpoints_fine_tuning'
