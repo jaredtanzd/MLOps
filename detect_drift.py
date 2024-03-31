@@ -20,6 +20,9 @@ def clear_directory(directory_path):
             print(f'Failed to delete {file_path}. Reason: {e}')
 
 def sample_and_transfer_images(source_dir, target_dir, sample_size=100):
+    
+    # Ensure target directory exists
+    os.makedirs(target_dir, exist_ok=True)
     clear_directory(target_dir)
 
     filenames = [filename for filename in os.listdir(source_dir) if filename.endswith('.tiff')]
