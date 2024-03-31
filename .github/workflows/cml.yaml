@@ -84,6 +84,6 @@ jobs:
           REPO_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           echo "## Training Summary" >> report.md
-          cat summary.txt >> report.md
-          cml publish training_logs.txt --md >> report.md
-          cml comment create report.md
+          cat unet/summary.txt >> report.md
+          cml publish unet/training_logs.txt --md >> report.md
+          cml send-comment report.md
