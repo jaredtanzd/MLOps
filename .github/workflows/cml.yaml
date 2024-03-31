@@ -22,6 +22,18 @@ jobs:
             --cloud-type p2.xlarge \
             --cloud-hdd-size 200 \
             --labels cml-runner
+            
+      - name: Make a trivial change
+        run: |
+          echo "Test change made on $(date)" >> test.txt
+
+      - name: Commit and push if there are changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Test change to check GITHUB_TOKEN permissions" -a || echo "No changes to commit"
+          git push
 
   detect-drift-and-train-model:
     needs: deploy-runner
@@ -66,8 +78,6 @@ jobs:
       
       - name: Fine-tune model if drift detected
         if: steps.detect_drift.outputs.drift-detected == 'true'
-        env:
-          REPO_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           cd unet
           python fine_tuning.py --epochs 1 --batch-size 5 --learning-rate 0.0001 --gpu 0 --dir-img '../data/processed/sorted_imgs/train' --dir-mask '../data/processed/sorted_masks/train' --dir-img-val '../data/processed/sorted_imgs/val' --dir-mask-val '../data/processed/sorted_masks/val' --load 'checkpoints_bet_alt/early_stopping_model.pth' 
