@@ -70,7 +70,7 @@ jobs:
           REPO_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           cd unet
-          python fine_tuning.py --epochs 20 --batch-size 5 --learning-rate 0.0001 --gpu 0 --dir-img '../data/processed/sorted_imgs/train' --dir-mask '../data/processed/sorted_masks/train' --dir-img-val '../data/processed/sorted_imgs/val' --dir-mask-val '../data/processed/sorted_masks/val' --load 'checkpoints_bet_alt/early_stopping_model.pth' 
+          python fine_tuning.py --epochs 1 --batch-size 5 --learning-rate 0.0001 --gpu 0 --dir-img '../data/processed/sorted_imgs/train' --dir-mask '../data/processed/sorted_masks/train' --dir-img-val '../data/processed/sorted_imgs/val' --dir-mask-val '../data/processed/sorted_masks/val' --load 'checkpoints_bet_alt/early_stopping_model.pth' 
           
           dvc push
           git config --local user.email "action@github.com"
